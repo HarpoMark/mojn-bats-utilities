@@ -5,12 +5,12 @@ library(stringr)
 
 #--------Set Filters---------------
 # Example:   visitseasonfilter <- c("22W","22S")
-visitseasonfilter <- c("18W", "18S", "19W", "19S","20W","20S","21W","21S")
-#visitseasonfilter <- c("22W","22S")
+#visitseasonfilter <- c("18W", "18S", "19W", "19S","20W","20S","21W","21S","22W","22S","23W","23S")
+visitseasonfilter <- c("23W","23S")
 
 
 bat.site <- agol_layers$Site %>%
-  dplyr::select(SiteCode, GRTSCell, Park, BroadHabitat, WaterBodyType, Latitude, Longitude)
+  dplyr::select(SiteCode, GRTSCell, Park, BroadHabitat, WaterBodyType, Latitude, Longitude, LegacySiteCode)
 
 bat.deployment <- agol_layers$deployment %>%
   dplyr::select(SiteCode,VisitGroupCode,
@@ -22,7 +22,7 @@ bat.deployment <- agol_layers$deployment %>%
                 DetectorCode, MicrophoneCode,
                 ActualStartDate, ActualStartTime,ActualStopDate,ActualStopTime,
                 GlobalID,DeploymentKey,ExpectedEndDate, ExpectedEndTime,
-                DetectionFirst, DetectionLast, MonitoringStatus, NumFilesDownloaded, NumFilesProcessed,
+                DetectionFirst, DetectionLast, MonitoringStatus, NumFilesDownloaded, NumFilesProcessed,BatteryLocation, BatteryType,
                 ProgramedStartTime, ProgramedStopTime, DeploymentDateText, RecoveryDateText, 
                 RecordingStartDateText, RecordingStartTimeText, RecordingEndDateText, RecordingEndTimeText,
                 Software, SpeciesList, ManualVetter)
@@ -49,31 +49,34 @@ bat.metadata <- dplyr::left_join(bat.deployment, bat.site, by = "SiteCode") %>%
   dplyr::left_join(bat.mics, "MicrophoneCode")  
 
 
-bat.metadata <- dplyr::filter(bat.metadata,VisitGroupCode %in% visitseasonfilter) %>%
+bat.metadata.filtered <- dplyr::filter(bat.metadata,VisitGroupCode %in% visitseasonfilter) %>%
   dplyr::mutate("Contact Name" = "Allen Calvert", "Contact Email" = "Allen_Calvert@nps.gov",
-                "Survey Start Time" = paste(RecordingStartDateText,"T", RecordingStartTimeText,":00", sep = ""),
+                "SurveyStartTime" = paste(RecordingStartDateText,"T", RecordingStartTimeText,":00", sep = ""),
                 "Weather Proofing" = "FALSE",
                 "Unusual Occurrences" = paste("Deployment: ",DeploymentSignificantWeatherNot, " Recovery: ",RecoverySignificantWeatherNotes),
-                "Survey End Time" = paste(RecordingEndDateText,"T", RecordingEndTimeText, ":00", sep = ""),
+                "SurveyEndTime" = paste(RecordingEndDateText,"T", RecordingEndTimeText, ":00", sep = ""),
                 "Nightly Low Temperature"= "","Nightly High Temperature" = "",	"Nightly Low Relative Humidity (%)"="","Nightly High Relative Humidity (%)"="",
                 "Nightly Low Weather Event"="","Nightly High Weather Event"="","Nightly Low Windspeed (km/hr)"="","Nightly High Windspeed (km/hr)"="",
                 "Nightly Low Cloud Cover (%)"="","Nightly High Cloud Cover (%)"="",
                 "Time Zone" = "Pacific Time", 
                 MicrophoneOrientation = tolower(MicrophoneOrientation),
-                MicrophoneOrientation = ifelse(MicrophoneOrientation == "u", "vert", MicrophoneOrientation))
-
+                MicrophoneOrientation = ifelse(MicrophoneOrientation == "u", "vert", MicrophoneOrientation),
+                MicrophoneOrientation = ifelse(MicrophoneOrientation == "NoData", "", MicrophoneOrientation),
+                MicrophoneOrientation = ifelse(MicrophoneOrientation == "nodata", "", MicrophoneOrientation),
+                ClutterType = ifelse(ClutterType == "NoData","",ClutterType))
 
 bat.detectionmetadata <- bat.detection %>%
-  dplyr::left_join(bat.metadata, by = c("ParentGlobalID"="GlobalID"))
+  dplyr::left_join(bat.metadata.filtered, by = c("ParentGlobalID"="GlobalID")) %>%
+  dplyr::filter((!is.na(SpeciesCodeAuto)) | (!is.na(SpeciesCodeManual)))
 
 
 detection_metadata <-dplyr::select(bat.detectionmetadata,
-                                   "GRTS Cell Id" = GRTSCell,
+                                   "| GRTS Cell Id" = GRTSCell,
                                    "Location Name" = SiteCode,
                                    Latitude,
                                    Longitude,
-                                   "Survey Start Time",
-                                   "Survey End Time",
+                                   "Survey Start Time" = SurveyStartTime,
+                                   "Survey End Time" = SurveyEndTime,
                                    "Detector" = DetectorModel,
                                    "Detector Serial Number" = DetectorSerialNumber,
                                    "Microphone" = MicModel,
@@ -106,12 +109,13 @@ detection_metadata <-dplyr::select(bat.detectionmetadata,
                                    "Auto Id" = SpeciesCodeAuto,
                                    "Manual Id" = SpeciesCodeManual,
                                    "Species List" = SpeciesList,
-                                   "Manual Vetter" = ManualVetter
+                                   "Manual Vetter" = ManualVetter,
+                                   "FieldSeason" = VisitGroupCode.x
                                    )                                   
 
 
 
-deployment_metadata_S123 <-dplyr::select(bat.metadata,
+deployment_metadata_S123 <-dplyr::select(bat.metadata.filtered,
                          GlobalID,
                          CreationDate,
                          Creator, 
@@ -119,7 +123,7 @@ deployment_metadata_S123 <-dplyr::select(bat.metadata,
                          Editor,
                          "Contact Name",
                          "Contact Email",
-                         "Survey Start Time",
+                         "Survey Start Time" = SurveyStartTime,
                          "GRTS Cell" = GRTSCell,
                          "Location Name" = SiteCode,
                          "Land Unit Code" = Park,
@@ -137,7 +141,7 @@ deployment_metadata_S123 <-dplyr::select(bat.metadata,
                          "Microphone Height (meters)" = MicrophoneHeightOffGround_m,
                          "Weather Proofing",
                          "Unusual Occurrences",
-                         "Survey End Time",
+                         "Survey End Time" = SurveyEndTime,
                          "Nightly Low Temperature",
                          "Nightly High Temperature",	
                          "Nightly Low Relative Humidity (%)",
@@ -151,20 +155,36 @@ deployment_metadata_S123 <-dplyr::select(bat.metadata,
                          "Time Zone",
                          "Y" = Latitude,
                          "X" = Longitude,
-                         "MonitoringStatus") %>%
+                         "MonitoringStatus",
+                         "VisitGroupCode",
+                         "NumFilesDownloaded",
+                         "LegacySiteCode") %>%
   dplyr::filter(MonitoringStatus %in% c("C","P"))
 
 
-deploymenttimes <- bat.deployment %>%
-  dplyr::select(SiteCode, VisitGroupCode,MonitoringStatus, NumFilesDownloaded, NumFilesProcessed,DeploymentDateText, ProgramedStartTime, ProgramedStopTime, DetectionFirst, RecordingStartDateText, RecordingStartTimeText, DetectionLast, RecordingEndDateText, RecordingEndTimeText)
+deploymenttimes <- dplyr::filter(bat.deployment,VisitGroupCode %in% visitseasonfilter) %>%
+                    dplyr::filter(MonitoringStatus == "C" | MonitoringStatus == "P") %>%
+  dplyr::mutate("SurveyStartTime" = paste(RecordingStartDateText,"T", RecordingStartTimeText,":00", sep = ""),
+                "SurveyEndTime" = paste(RecordingEndDateText,"T", RecordingEndTimeText, ":00", sep = "")) %>%
+  dplyr::select(SiteCode, VisitGroupCode,MonitoringStatus, NumFilesDownloaded, NumFilesProcessed,DeploymentDateText,RecoveryDateText,SurveyStartTime,ActualStartDate, RecordingStartDateText, ActualStartTime, SurveyEndTime,ActualStopDate, RecordingEndDateText, ActualStopTime, ProgramedStartTime, ProgramedStopTime, DetectionFirst,RecordingStartTimeText, DetectionLast,RecordingEndTimeText)
+
 detectiontimes <- agol_layers$detection %>%
   dplyr::select(LocationName,DeploymentDate, DeploymentKey, VisitGroupCode, Filename, Night, SCallDate, SCallTime, SCallTimestamp, CallDate, CallTime, CallTimestamp)
 
 bat.times <- dplyr::right_join(bat.deployment, bat.detection, by = c("GlobalID"="ParentGlobalID"))
 
-minmaxCall <- bat.times %>% group_by(DeploymentKey.x, DeploymentDateText, VisitGroupCode.x) %>%
+minmaxCall <- bat.times %>% group_by(DeploymentKey.x) %>%
   summarize(min = min(SCallTimestamp, na.rm = TRUE),
             max = max(SCallTimestamp, na.rm = TRUE),
             count = n())
 
-bat.times <- dplyr::right_join(bat.deployment, minmaxCall, by = c("DeploymentKey"="DeploymentKey"))
+bat.times2 <- dplyr::right_join(bat.deployment, minmaxCall, by = c("DeploymentKey"="DeploymentKey.x")) %>%
+    dplyr::mutate("SurveyStartTime" = paste(RecordingStartDateText,"T", RecordingStartTimeText,":00", sep = ""),
+                  "SurveyEndTime" = paste(RecordingEndDateText,"T", RecordingEndTimeText, ":00", sep = "")) %>%
+    dplyr::select(SiteCode, VisitGroupCode, DeploymentDate, SurveyStartTime, SurveyEndTime, "FirstCall" = min, "LastCall" = max)
+
+deploymentfilecount <- dplyr::filter(bat.deployment,VisitGroupCode == "23S") %>%
+  dplyr::filter(MonitoringStatus == "C" | MonitoringStatus == "P") %>%
+  dplyr::mutate("Year" = VisitGroupCode, "Park" = stringr::str_sub(SiteCode,1,4), "Cell" = SiteCode,"Location" = paste(SiteCode, "_",stringr::str_sub(DeploymentDateText,1,4),stringr::str_sub(DeploymentDateText,6,7),stringr::str_sub(DeploymentDateText,9,10),sep=""), DeploymentDate,NumFilesDownloaded) %>%
+  dplyr::select(Year, Park, Cell, Location, DeploymentDate, NumFilesDownloaded)
+

@@ -1,7 +1,10 @@
+source("utils.R")
 library(dplyr)
+library(stringr)
+
 data_path = "https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/MOJN_BatsAcoustic_Database/FeatureServer"
 lookup_path = "https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/MOJN_Lookup_Database/FeatureServer"
-agol_username = "mojn_bats"
+agol_username = "mojn_data"
 agol_password = rstudioapi::askForPassword(paste("Please enter the password for AGOL account", agol_username))
 token_resp <- httr::POST("https://nps.maps.arcgis.com/sharing/rest/generateToken",
                          body = list(username = agol_username,
@@ -44,11 +47,11 @@ agol_layers$detection <- fetchAllRecords(data_path, 6, token = agol_token$token)
   dplyr::mutate(DeploymentDate = as.POSIXct(DeploymentDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles"))
   
 # ----- Detector Lookup -----
-agol_layers$lu_detectors <- fetchAllRecords(lookup_path, 65, token = agol_token$token) %>%
+agol_layers$lu_detectors <- fetchAllRecords(lookup_path, 67, token = agol_token$token) %>%
   dplyr::mutate(CreationDate = as.POSIXct(CreationDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
   dplyr::mutate(EditDate = as.POSIXct(EditDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles"))
 
 # ----- Microphone Lookup -----
-agol_layers$lu_mics <- fetchAllRecords(lookup_path, 68, token = agol_token$token) %>%
+agol_layers$lu_mics <- fetchAllRecords(lookup_path, 70, token = agol_token$token) %>%
   dplyr::mutate(CreationDate = as.POSIXct(CreationDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
   dplyr::mutate(EditDate = as.POSIXct(EditDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles"))
