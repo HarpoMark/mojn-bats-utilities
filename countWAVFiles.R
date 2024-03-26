@@ -13,7 +13,7 @@ fileList <- sapply(files, function(file){
   # Fetch the file information
   fileInfo <- file.info(file)
   # add the deployment name and modified date-time to the file info vector
-  fileList <- append(fileList, c(str_extract(rownames(fileInfo), "([^/]*/){2}([^/]*)", group = 2), as.character(fileInfo[['mtime']])))
+  fileList <- append(fileList, c(stringr::str_extract(rownames(fileInfo), "([^/]*/){2}([^/]*)", group = 2), as.character(fileInfo[['mtime']])))
 
   return(fileList)
 })
@@ -38,37 +38,30 @@ filesFlipped <- filesFlipped %>%
 totalCalls <- filesFlipped %>%
   dplyr::group_by(deployment) %>%
   dplyr::summarise(totalCalls = n(),
-                   firstCall = min(shiftedDate),
-                   lastCall = max(shiftedDate),
-                   deploymentLength = seconds_to_period(difftime(lastCall, firstCall, units = "secs")))
+          firstCall = min(lubridate::ymd_hms(date, tz = "America/Los_Angeles")),
+          lastCall = max(lubridate::ymd_hms(date, tz = "America/Los_Angeles")),
+          deploymentLength = lubridate::seconds_to_period(difftime(lastCall, firstCall, units = "secs"))) %>%
+  dplyr::mutate(firstCall = as.character(firstCall),
+                 lastCall = as.character(lastCall))
 
-# # Create table with number of calls per night for each deployment
-# callsByNight <- filesFlipped %>%
-#   dplyr::mutate(ymd = date(shiftedDate)) %>%
-#   dplyr::group_by(deployment, ymd) %>%
-#   # Calculate number of calls in each date
-#   dplyr::summarise(numCalls = n()) %>%
-#   # Calculate number day for each date
-#   dplyr::mutate(day = seq_along(deployment)) %>%
-#   dplyr::select(-ymd) %>%
-#   tidyr::pivot_wider(names_from = day, values_from = numCalls, names_prefix = "day_")
 
 
 # Create table with number of calls per night for each deployment
 
 callsByNight <- filesFlipped %>%
-  dplyr::mutate(ymd = date(shiftedDate)) %>%
+  dplyr::mutate(ymd = lubridate::date(shiftedDate)) %>%
   dplyr::group_by(deployment, ymd) %>%
   # Calculate number of calls in each date
   dplyr::summarise(numCalls = n())
 
-
-callsByNight2 <- totalCalls %>%
+callsByNight2 <- filesFlipped %>%
+  dplyr::group_by(deployment) %>%
+  # Find the first and last date of each deployment based on the shifted date
+  dplyr::summarise(firstCall = lubridate::date(min(shiftedDate)),
+                   lastCall = lubridate::date(max(shiftedDate))) %>%
   dplyr::select(deployment, firstCall, lastCall) %>%
-    dplyr::mutate(firstCall = date(firstCall),
-                     lastCall = date(lastCall)) %>%
   rowwise() %>%
-  # Create a row for each date in the range for every deployment
+  # Create a row for each date in the range of every deployment
   do(data.frame(deployment=.$deployment, date=seq(.$firstCall, .$lastCall, by="1 day")))
 
 # Join date range and number of date tables
@@ -80,13 +73,13 @@ callsByNightFinal$numCalls[is.na(callsByNightFinal$numCalls)] <- 0
 
 callsByNightFinal <- callsByNightFinal %>%
   dplyr::arrange(deployment, ymd) %>%
-  # Calculate number day for each date
+  # Sequence the dates for every deployment
   dplyr::mutate(day = seq_along(deployment)) %>%
   dplyr::select(-ymd) %>%
   tidyr::pivot_wider(names_from = day, values_from = numCalls, names_prefix = "day_")
 
 
-write.csv(totalCalls, "totalBatCalls.csv")
+readr::write_csv(totalCalls, "totalBatCalls.csv")
 readr::write_csv(callsByNightFinal, "batCallsByNight.csv", na = "")
 
 
