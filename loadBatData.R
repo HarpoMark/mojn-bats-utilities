@@ -1,5 +1,5 @@
 source("utils.R")
-library(dplyr)
+library(tidyverse)
 library(stringr)
 
 data_path = "https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/MOJN_BatsAcoustic_Database/FeatureServer"
@@ -34,7 +34,7 @@ agol_layers$deployment <- fetchAllRecords(data_path, 3, token = agol_token$token
   dplyr::mutate(EditDate = as.POSIXct(EditDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
   dplyr::mutate(ExpectedEndDate = as.POSIXct(ExpectedEndDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
   dplyr::mutate(ExpectedEndTime = as.POSIXct(ExpectedEndTime/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
-  dplyr::mutate(ActualStopTimeOld = as.POSIXct(ActualStopTimeOld/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) 
+  dplyr::mutate(ActualStopTimeOld = as.POSIXct(ActualStopTimeOld/1000, origin = "1970-01-01", tz = "America/Los_Angeles"))
 
 # ----- Detection -----
 agol_layers$detection <- fetchAllRecords(data_path, 6, token = agol_token$token) %>%
@@ -45,7 +45,7 @@ agol_layers$detection <- fetchAllRecords(data_path, 6, token = agol_token$token)
   dplyr::mutate(CallTime = as.POSIXct(CallTime/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
   dplyr::mutate(CallTimestamp = as.POSIXct(CallTimestamp/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%
   dplyr::mutate(DeploymentDate = as.POSIXct(DeploymentDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles"))
-  
+
 # ----- Detector Lookup -----
 agol_layers$lu_detectors <- fetchAllRecords(lookup_path, 67, token = agol_token$token) %>%
   dplyr::mutate(CreationDate = as.POSIXct(CreationDate/1000, origin = "1970-01-01", tz = "America/Los_Angeles")) %>%

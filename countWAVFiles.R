@@ -1,9 +1,12 @@
+library(magrittr)
+library(lubridate)
+library(tidyverse)
 
 # path to data/hard drive
-dataPath <- "D:/Bats_24_Mirror_STAY_OUT"
+dataPath <- "E:/MOJN_2024_Summer_Primary"
 
 # Retrieve all WAV file paths
-files <- list.files(path = dataPath, pattern = ".WAV$", recursive = TRUE, full.names = TRUE)
+files <- list.files(path = dataPath, pattern = ".WAV$|.wav$", recursive = TRUE, full.names = TRUE)
 
 # Assign empty vector for file info
 fileList <- c()
@@ -81,6 +84,7 @@ callsByNightFinal <- callsByNightFinal %>%
 
 readr::write_csv(totalCalls, "totalBatCalls.csv")
 readr::write_csv(callsByNightFinal, "batCallsByNight.csv", na = "")
+
 
 
 

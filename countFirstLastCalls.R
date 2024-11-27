@@ -1,11 +1,13 @@
+#LEGACY VERSION - Use countWAVFiles instead
 library(magrittr)
 library(lubridate)
+library(tidyverse)
 
 ##########EDIT THIS SECTION ONLY #############
 
-searchFolder <- "E:/23Summer_DEVA"
+searchFolder <- "D:/TUSK_Summer"
 
-##########End of editable section############# 
+##########End of editable section#############
 
 listOfFolders <- list.dirs(path=searchFolder,full.names = TRUE, recursive = FALSE)
 
@@ -17,7 +19,7 @@ folder_stats <- sapply(listOfFolders, function(folder) {
   #filelist <- system("ls -fR", intern = TRUE)
   #filelist <- filelist[grep("\\.wav$", filelist, ignore.case = TRUE)]
   #filelist <- file.info(filelist)
-  
+
   my_stats <- tibble::tibble(deployment = folder,
                              callcount = nrow(filelist),
                              firstcall = min(filelist$mtime),

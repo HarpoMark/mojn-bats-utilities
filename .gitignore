@@ -5,10 +5,11 @@
 *.csv
 *.xlsx
 *.html
-data/
 *.Rproj
 *.zip
 *_files/
 *.jpg
 photo_downloads/*
 Data/
+retired/
+data/
