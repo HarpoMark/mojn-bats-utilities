@@ -3,7 +3,7 @@ library(lubridate)
 library(tidyverse)
 
 # path to data/hard drive
-dataPath <- "E:/MOJN_2024_Summer_Primary"
+dataPath <- "D:/MOJN_2025_Winter_Primary"
 
 # Retrieve all WAV file paths
 files <- list.files(path = dataPath, pattern = ".WAV$|.wav$", recursive = TRUE, full.names = TRUE)

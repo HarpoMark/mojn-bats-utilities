@@ -16,8 +16,8 @@ if (file.exists(dest.folder)) {
 
 #--------Set Filters---------------
 # Example:   visitseasonfilter <- c("22W","22S")
-#visitseasonfilter <- c("18W", "18S", "19W", "19S","20W","20S","21W","21S","22W","22S","23W","23S")
-visitseasonfilter <- c("24S")
+visitseasonfilter <- c("18W", "18S", "19W", "19S","20W","20S","21W","21S","22W","22S","23W","23S", "24W","24S","25W","25S")
+#visitseasonfilter <- c("25W")
 
 bat.site <- agol_layers$Site %>%
   dplyr::select(SiteCode, GRTSCell, Park, BroadHabitat, WaterBodyType, Latitude, Longitude, LegacySiteCode)
